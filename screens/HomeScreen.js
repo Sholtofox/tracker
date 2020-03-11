@@ -1,7 +1,8 @@
 import React, { Component } from "react";
 import { Input, Button } from "react-native-elements";
 import * as firebase from "firebase";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import Location from './Location'
 import {
     Image,
     Platform,
@@ -24,7 +25,8 @@ export default class HomeScreen extends Component {
         this.state = {
             addPlace: false,
             newPlace: '',
-            places: []
+            places: [],
+            removing: false
         }
     }
     componentDidMount() {
@@ -43,7 +45,6 @@ export default class HomeScreen extends Component {
 
     }
 
-
     componentDidUpdate(prevProps, prevState) {
         if(firebase.auth().currentUser) {
         var docRef = db.collection("users").doc(firebase.auth().currentUser.uid);
@@ -52,8 +53,7 @@ export default class HomeScreen extends Component {
             if (doc) {
               if (this.state.places.length !== doc.data().places.length) {
                 this.setState({ places: doc.data().places })
-                console.log('on component', this.state.places)
-                console.log('in db', prevState.places)
+                console.log('DOCDATA', doc.data())
               }
             } else {
                 // doc.data() will be undefined in this case
@@ -69,22 +69,67 @@ export default class HomeScreen extends Component {
 
     }
 
-    locationNavigate = () => {
-      this.props.navigation.navigate("Location");
-    }
 
+    locationNavigate = (event) => {
+        this.props.navigation.navigate("Location", {where: this.state.places[event]})
+    }
+    
     signOutUser = () => {
         firebase.auth().signOut();
         Alert.alert('Logged Out')
     };
+    
     addNewPlace = () => {
-             db.collection('users').doc(firebase.auth().currentUser.uid).update({
-            places: firebase.firestore.FieldValue.arrayUnion(this.state.newPlace)
-        })
+      db.collection('users').doc(firebase.auth().currentUser.uid).update({
+        places: firebase.firestore.FieldValue.arrayUnion(this.state.newPlace)
+      })
+
+      var newPlace = this.state.newPlace
+      var docData = {
+        [newPlace]: [],
+      };
+
+      db.collection('users').doc(firebase.auth().currentUser.uid).set(docData,
+      {merge: true})
         this.setState({ addPlace: !this.state.addPlace })
 
-        console.log(this.state.places)
+        console.log('in add new place', this.state.places)
     }
+
+  deleter = (i) => {
+    console.log('before', this.state.places)
+    var userRef = db.collection('users').doc(firebase.auth().currentUser.uid)
+    var deleted = this.state.places[i]
+    try {
+      userRef.update({[deleted]: firebase.firestore.FieldValue.delete()}).then(
+        userRef.update({places: firebase.firestore.FieldValue.arrayRemove(deleted)})
+      )
+ 
+      this.setState({ removing: !this.state.removing })
+    } catch (error) {
+      console.log(error)
+    }
+    console.log('after', this.state.places)
+
+  }
+
+  deletePlace = (i) => {
+
+    Alert.alert(
+      'Delete Place?',
+      'Are you sure?',
+      [
+
+        {
+          text: 'No',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel',
+        },
+        { text: 'Yes', onPress: () => this.deleter(i) },
+      ],
+      { cancelable: false },
+    );
+  }
 
     toggleAdd =() => {
         this.setState({addPlace: !this.state.addPlace})
@@ -147,11 +192,10 @@ export default class HomeScreen extends Component {
               <View style={styles.locations}>
                 <ScrollView>
                   {this.state.places
-                    ? this.state.places.map(place => (
-                      <TouchableOpacity onPress={this.locationNavigate}
-                        key={Math.random() * 999}>
+                    ? this.state.places.map((place, i) => (
+                      <View key={i} style={styles.moreThings}>
                         <Text
-                          key={Math.random() * 999}
+                            onPress={() => this.locationNavigate(i)}                      
                           style={{
                             backgroundColor: 'rgba(153, 153, 153, 0.5)',
                             marginBottom: 10,
@@ -168,7 +212,9 @@ export default class HomeScreen extends Component {
                         >
                           {place}
                         </Text>
-                      </TouchableOpacity>
+                        <Ionicons style={{ marginLeft: 15 }} name='ios-remove-circle' size={30} color='red' onPress={() => this.deletePlace(i)} />
+                        <Ionicons style={{ marginLeft: 15 }} name='ios-arrow-forward' size={30} color='blue' />
+                      </View>
                       ))
                     : null}
                 </ScrollView>
@@ -214,6 +260,9 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         justifyContent: 'center'
     },
+  moreThings: {
+    flexDirection: 'row'
+  },
   bgImage: {
     flex: 1,
     top: 0,
@@ -249,7 +298,6 @@ const styles = StyleSheet.create({
       textShadowColor: 'red',
       textShadowRadius: 3,
       fontSize: 20
-
   },
   add: {
     fontSize: 40,

@@ -59,6 +59,13 @@ export default class Login extends Component {
                     style={styles.bgImage}
                     source={require('../assets/img.jpg')}
                 >
+
+                    <View>
+                        <Image
+                        style={styles.tracker}
+                        source={require('../assets/newtracker.png')} 
+                        />
+                    </View>
                     {this.state.signingUp ? (
                         <View style={styles.loginForms}>
                             <View style={styles.errorMessage}>
@@ -165,7 +172,7 @@ export default class Login extends Component {
                                 <TouchableOpacity >
                                     <Button
                                         onPress={this.toggleSignUp}
-                                        title="SignUp"
+                                        title="Login"
                                         type="clear"
                                         activeOpacity={0.5}
                                         titleStyle={{ color: "white", fontSize: 15 }}
@@ -270,6 +277,14 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         width: 420
+    },
+    tracker: {
+        marginTop: 100,
+        borderRadius: 100,
+        width: 250,
+        height: 250,
+        borderWidth: 3,
+        borderColor: '#EFE5E8'
     },
     container: {
         flex: 1
